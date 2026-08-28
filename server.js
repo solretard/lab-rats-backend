@@ -10,6 +10,7 @@ app.use('/api/twitch', require('./routes/twitch'));
 app.use('/api/whiskers', require('./routes/whiskers'));
 app.use('/api/doc', require('./routes/doc'));
 app.use('/api/squint', require('./routes/squint'));
+app.use('/api/dredd', require('./routes/dredd'));
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
