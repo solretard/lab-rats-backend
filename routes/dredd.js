@@ -3,8 +3,8 @@ const router = express.Router();
 const supabase = require('../lib/supabase');
 const { getConnection, ownsNftFromIssuer } = require('../lib/xrplHelpers');
 
-// Set this once Lab Rats actually mints — the wallet that issues the collection.
-const LAB_RATS_NFT_ISSUER = process.env.LAB_RATS_NFT_ISSUER || null;
+// Set this once Dredd Doctors actually mints — the wallet that issues the collection.
+const DREDD_NFT_ISSUER = process.env.LAB_RATS_NFT_ISSUER || null;
 
 // GET /api/dredd/experiments — public board, sorted by upvotes
 router.get('/experiments', async (req, res) => {
@@ -23,14 +23,21 @@ router.get('/experiments', async (req, res) => {
 router.get('/check/:wallet', async (req, res) => {
   const { wallet } = req.params;
 
-  if (!LAB_RATS_NFT_ISSUER) {
-    return res.json({ eligible: false, note: 'Lab Rats has not launched yet — the board opens once minting is live.' });
+  if (!DREDD_NFT_ISSUER) {
+    return res.json({ eligible: false, note: 'Dredd Doctors has not launched yet — the board opens once minting is live.' });
   }
 
   try {
     const ws = await getConnection();
-    const result = await ownsNftFromIssuer(ws, wallet, LAB_RATS_NFT_ISSUER);
-    res.json({ eligible: result.owns, tokenIds: result.tokenIds });
+    const result = await ownsNftFromIssuer(ws, wallet, DREDD_NFT_ISSUER);
+    if (result.owns) {
+      return res.json({ eligible: true, tokenIds: result.tokenIds });
+    }
+    return res.json({
+      eligible: false,
+      tokenIds: [],
+      note: 'This wallet doesn\'t hold a Dredd Doctor yet — mint one to unlock submissions.',
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -43,15 +50,15 @@ router.post('/submit', async (req, res) => {
   if (!wallet || !title || !description) {
     return res.status(400).json({ error: 'wallet, title, and description are all required.' });
   }
-  if (!LAB_RATS_NFT_ISSUER) {
-    return res.status(403).json({ error: 'Lab Rats has not launched yet.' });
+  if (!DREDD_NFT_ISSUER) {
+    return res.status(403).json({ error: 'Dredd Doctors has not launched yet.' });
   }
 
   try {
     const ws = await getConnection();
-    const ownership = await ownsNftFromIssuer(ws, wallet, LAB_RATS_NFT_ISSUER);
+    const ownership = await ownsNftFromIssuer(ws, wallet, DREDD_NFT_ISSUER);
     if (!ownership.owns) {
-      return res.status(403).json({ error: 'This wallet does not hold a Lab Rat — only holders can submit experiments.' });
+      return res.status(403).json({ error: 'This wallet does not hold a Dredd Doctor — only holders can submit experiments.' });
     }
 
     const { data, error } = await supabase
