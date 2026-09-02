@@ -6,6 +6,29 @@ const { getConnection, ownsNftFromIssuer } = require('../lib/xrplHelpers');
 // Set this once Dredd Doctors actually mints — the wallet that issues the collection.
 const DREDD_NFT_ISSUER = process.env.LAB_RATS_NFT_ISSUER || null;
 
+// Set this to any secret string you choose — only people who know this key
+// can see the admin view. Not a full auth system, but keeps casual visitors out.
+const ADMIN_KEY = process.env.DREDD_ADMIN_KEY || null;
+
+// GET /api/dredd/admin/experiments?key=... — full detail view, admin only
+router.get('/admin/experiments', async (req, res) => {
+  const { key } = req.query;
+  if (!ADMIN_KEY) {
+    return res.status(500).json({ error: 'DREDD_ADMIN_KEY not set on the server.' });
+  }
+  if (key !== ADMIN_KEY) {
+    return res.status(403).json({ error: 'Invalid admin key.' });
+  }
+
+  const { data, error } = await supabase
+    .from('experiments')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: 'Failed to load experiments.' });
+  res.json({ experiments: data });
+});
+
 // GET /api/dredd/experiments — public board, sorted by upvotes
 router.get('/experiments', async (req, res) => {
   const { data, error } = await supabase
